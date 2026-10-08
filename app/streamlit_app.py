@@ -15,7 +15,7 @@ st.markdown("""<style>.block-container{padding-top:1.5rem}.hero{padding:1.2rem;b
 WORKFLOWS=["Grounded RAG Chat","Case / Contract Review","Legal Drafting","Legal Research"]
 
 def init():
-    for k,v in {"documents":[],"chunks":[],"last_result":None,"chat_history":[]}.items(): st.session_state.setdefault(k,v)
+    for k,v in {"documents":[],"chunks":[],"last_result":None,"chat_history":[],"last_query":""}.items(): st.session_state.setdefault(k,v)
 
 def process(files):
     with tempfile.TemporaryDirectory() as tmp:
@@ -24,7 +24,11 @@ def process(files):
             p=Path(tmp)/f.name; p.write_bytes(f.getvalue()); paths.append(str(p))
         pages=load_documents(paths); chunks=chunk_pages(pages); r=HybridRetriever(); r.index(chunks); configure(r)
         st.session_state.documents=[{"name":Path(p).name,"pages":sum(x["document"]==Path(p).name for x in pages)} for p in paths]
-        st.session_state.chunks=chunks; st.session_state.chat_history=[]; st.session_state.last_result=None
+        # Processing only indexes evidence. It must never reuse an old answer.
+        st.session_state.chunks=chunks
+        st.session_state.chat_history=[]
+        st.session_state.last_result=None
+        st.session_state.last_query=""
 
 def sources(items):
     st.subheader("Evidence & Sources")
@@ -109,6 +113,7 @@ def main():
                 prior=st.session_state.chat_history if workflow=="Grounded RAG Chat" else []
                 result=run_workflow(workflow,q,top_k,document_type,conversation_context=prior)
                 st.session_state.last_result=result
+                st.session_state.last_query=q
                 if workflow=="Grounded RAG Chat":
                     st.session_state.chat_history += [{"role":"user","content":q},{"role":"assistant","content":result.get("answer","")}]
         except Exception as e: st.error(f"Analysis failed: {e}"); return
@@ -116,7 +121,12 @@ def main():
         st.warning("Process at least one document first."); return
 
     r=st.session_state.last_result
-    if not r: st.info("Upload documents, choose a workflow, and run an analysis."); return
+    if not r:
+        if st.session_state.chunks:
+            st.info("Documents processed. Enter your question above and submit it to get a grounded answer.")
+        else:
+            st.info("Upload documents, choose a workflow, and run an analysis.")
+        return
     st.divider(); st.caption(f"Route: {r.get('route','workflow-specific')}")
     if workflow=="Grounded RAG Chat":
         if r.get("llm_enabled"):
