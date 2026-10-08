@@ -152,7 +152,7 @@ def render_result(r, workflow):
         st.metric("Confidence",str(confidence).upper() if confidence else "—")
     with c3:
         st.metric("Verified claims",sum(x.get("status")=="SUPPORTED" for x in (r.get("claims") or []) if isinstance(x,dict)))
-    st.caption(f"Workflow route: {route}")
+    # Internal routing is intentionally hidden from users. The UI should\n    # show the actual result, not implementation-level route names such as\n    # CASE_RELEVANCE_GUARD. Guarded/off-topic responses are explained below.\n    if r.get("guard_blocked"):\n        pass
 
     if workflow=="Grounded RAG Chat":
         provider = {"gemini": "Gemini", "openai": "OpenAI"}.get(r.get("llm_provider"), "LLM")
