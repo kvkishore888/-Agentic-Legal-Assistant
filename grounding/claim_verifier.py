@@ -19,6 +19,9 @@ def _evidence_items(context: Any):
 def _support_score(claim,evidence):
     ct,et=_tokens(claim),_tokens(evidence)
     if not ct or not et: return 0.0
+    claim_nums=set(re.findall(r"\\b\\d{1,4}\\b",str(claim)))
+    evidence_nums=set(re.findall(r"\\b\\d{1,4}\\b",str(evidence)))
+    if claim_nums and evidence_nums and claim_nums != evidence_nums: return 0.0
     if _norm(claim)==_norm(evidence): return 1.0
     return len(ct&et)/len(ct)
 def verify_claims(claims:list[dict],context:Any,min_support:float=0.72)->list[dict]:
