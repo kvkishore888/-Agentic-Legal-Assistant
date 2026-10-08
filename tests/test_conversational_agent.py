@@ -39,3 +39,16 @@ def test_unsupported_llm_claim_is_rejected():
     assert result["answer"] == "Not verified from the provided sources."
     assert result["unsupported_claims"]
     assert result["unsupported_claims"][0]["status"] != "SUPPORTED"
+
+
+def test_deterministic_fallback_does_not_dump_retrieved_chunk():
+    evidence = [{
+        "text": "The contract value for the shipment was ₹2,40,000. The payment was made on 20 February 2026.",
+        "document": "legal_rag_test_dataset.pdf",
+        "page": 2,
+        "chunk_id": "legal-rag-p2-c1",
+    }]
+    result = answer_with_grounding("What was the contract value?", evidence)
+    assert result["answer"] == "The contract value for the shipment was ₹2,40,000."
+    assert "chunk_id" not in result["answer"]
+    assert "fusion_score" not in result["answer"]
