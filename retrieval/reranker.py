@@ -1,11 +1,16 @@
-"""Optional cross-encoder reranker with safe fallback."""
+"""Optional reranker with a safe lightweight default.
+
+Cross-encoder reranking is opt-in because loading a transformer model can exceed
+the memory limit of small cloud instances.
+"""
 from __future__ import annotations
 import os
 
 class Reranker:
-    def __init__(self, model_name: str | None = None, enabled: bool = True):
+    def __init__(self, model_name: str | None = None, enabled: bool | None = None):
         self.model_name = model_name or os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
-        self.enabled = enabled
+        env_enabled = os.getenv("RERANKER_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+        self.enabled = env_enabled if enabled is None else enabled
         self.model = None
 
     def rerank(self, query, results, top_k=5):
