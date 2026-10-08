@@ -107,9 +107,10 @@ Return only the answer text; do not output JSON or analysis."""
         )
         answer = (response.output_text or "").strip()
         return answer or None
-    except Exception:
-        # A missing key, provider outage, quota issue, or SDK mismatch must never
-        # bypass grounding. The deterministic fallback remains safe.
+    except Exception as exc:
+        # A provider failure must never bypass grounding. The deterministic
+        # fallback remains safe. Do not expose provider error details to users.
+        _ = exc
         return None
 
 
@@ -215,7 +216,25 @@ def answer_with_grounding(
         for claim in claims
         if claim.get("status") == "SUPPORTED"
     ]
-    answer = " ".join(established) if established else _UNVERIFIED
+
+    # Preserve the conversational LLM response only when every extracted claim
+    # is supported and every supported claim has source metadata. Otherwise,
+    # fall back to verified atomic claims so the model cannot introduce an
+    # unsupported legal fact.
+    all_supported = bool(claims) and all(
+        claim.get("status") == "SUPPORTED" for claim in claims
+    )
+    all_cited = bool(claims) and all(
+        claim.get("status") == "SUPPORTED"
+        and claim.get("document") is not None
+        and claim.get("page") is not None
+        and claim.get("chunk_id") is not None
+        for claim in claims
+    )
+    if all_supported and all_cited and candidate.strip():
+        answer = candidate.strip()
+    else:
+        answer = " ".join(established) if established else _UNVERIFIED
     unsupported = [
         claim for claim in claims if claim.get("status") != "SUPPORTED"
     ]
