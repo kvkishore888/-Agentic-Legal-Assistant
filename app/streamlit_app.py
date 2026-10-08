@@ -142,8 +142,10 @@ def render_result(r, workflow):
     st.caption(f"Workflow route: {route}")
 
     if workflow=="Grounded RAG Chat":
-        if r.get("llm_enabled"):
-            st.success("🤖 Conversational AI is enabled. Evidence verification remains the final gate.")
+        if r.get("llm_used"):
+            st.success("🤖 OpenAI reasoning active · response grounded against retrieved evidence.")
+        elif r.get("llm_enabled"):
+            st.warning("OpenAI is configured, but this response used the safe deterministic fallback. Check the model/API configuration.")
         else:
             st.warning("Deterministic fallback is active. OpenAI reasoning is not currently enabled.")
 
