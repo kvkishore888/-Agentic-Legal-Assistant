@@ -1,36 +1,224 @@
-"""Grounded orchestration: retrieve -> candidate -> verify -> final answer."""
+"""Conversational, evidence-grounded legal agent.
+
+The LLM is used for natural-language reasoning and conversation. It is never
+treated as a source of truth: retrieved evidence is passed separately, and
+the existing deterministic claim/citation verification remains the final gate.
+"""
 from __future__ import annotations
-from typing import Any,Callable
+
+import os
+from typing import Any, Callable
+
 from retrieval.hybrid_search import retrieve
 from grounding.claim_extractor import extract_claims
 from grounding.claim_verifier import verify_claims
 from grounding.citation_validator import validate_citations
 from .router import route_request
-_UNVERIFIED="Not verified from the provided sources."
-def _evidence(context:Any):
-    if isinstance(context,dict):
-        for k in ("evidence","sources","context","retrieved"):
-            if k in context:return _evidence(context[k])
-    if isinstance(context,(list,tuple)):return [x for x in context if isinstance(x,dict) and x.get("text")]
+
+_UNVERIFIED = "Not verified from the provided sources."
+
+
+def _evidence(context: Any) -> list[dict[str, Any]]:
+    if isinstance(context, dict):
+        for key in ("evidence", "sources", "context", "retrieved"):
+            if key in context:
+                return _evidence(context[key])
+    if isinstance(context, (list, tuple)):
+        return [
+            item for item in context
+            if isinstance(item, dict) and item.get("text")
+        ]
     return []
-def _candidate(query,context,generator):
-    if generator:return str(generator(query,context) or "")
-    if isinstance(context,dict) and context.get("candidate_answer"):return str(context["candidate_answer"])
-    if isinstance(context,dict) and context.get("answer"):return str(context["answer"])
-    return "\n".join(str(x["text"]) for x in _evidence(context))
-def _confidence(claims,citations,evidence):
-    if not claims or not evidence:return "LOW"
-    supported=sum(c.get("status")=="SUPPORTED" for c in claims); contradicted=sum(c.get("status")=="CONTRADICTED" for c in claims); valid=sum(c.get("valid") for c in citations)
-    if contradicted:return "LOW"
-    ratio=supported/len(claims)
-    if ratio==1 and (not citations or valid==len(citations)):return "HIGH"
-    if ratio>=.5:return "MEDIUM"
+
+
+def _format_evidence(evidence: list[dict[str, Any]]) -> str:
+    blocks = []
+    for i, item in enumerate(evidence, 1):
+        blocks.append(
+            f"[EVIDENCE {i}]\n"
+            f"Document: {item.get('document', 'Unknown')}\n"
+            f"Page: {item.get('page', 'Unknown')}\n"
+            f"Chunk: {item.get('chunk_id', 'Unknown')}\n"
+            f"Text: {item.get('text', '')}"
+        )
+    return "\n\n".join(blocks)
+
+
+def _history_messages(history: list[dict[str, str]] | None) -> list[dict[str, str]]:
+    messages = []
+    for item in (history or [])[-8:]:
+        role = item.get("role")
+        content = item.get("content", "")
+        if role in {"user", "assistant"} and content:
+            messages.append({"role": role, "content": content})
+    return messages
+
+
+def _llm_candidate(
+    query: str,
+    evidence: list[dict[str, Any]],
+    conversation_history: list[dict[str, str]] | None = None,
+) -> str | None:
+    """Generate a conversational candidate answer, or None when LLM is unavailable."""
+    provider = os.getenv("LLM_PROVIDER", "none").strip().lower()
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if provider != "openai" or not api_key:
+        return None
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+        model = os.getenv("LLM_MODEL", "gpt-6-luna")
+
+        instructions = """You are an evidence-grounded legal assistant.
+
+Rules:
+1. Retrieved evidence is the only source of factual/legal claims about the user's
+   documents. Do not invent facts, dates, names, sections, cases, citations,
+   holdings, or procedural events.
+2. Conversation history is context for resolving follow-up questions, NOT evidence.
+3. If the evidence does not establish an answer, explicitly say that it is not
+   verified from the provided sources.
+4. Explain the answer naturally and conversationally. For follow-up questions,
+   resolve references such as "that case", "the second document", or "when was it?"
+   from the conversation context.
+5. Prefer precise source references in the prose, using the supplied document,
+   page, and chunk identifiers.
+6. Do not claim that external legal research was performed unless the supplied
+   evidence explicitly identifies an independently verified external authority.
+7. This is legal information support, not a substitute for a qualified lawyer.
+
+Return only the answer text; do not output JSON or analysis."""
+
+        history = _history_messages(conversation_history)
+        prompt = (
+            "RETRIEVED EVIDENCE:\n"
+            f"{_format_evidence(evidence) or '[NO EVIDENCE RETRIEVED]'}\n\n"
+            "USER QUESTION:\n"
+            f"{query}"
+        )
+
+        response = client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=history + [{"role": "user", "content": prompt}],
+            max_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "700")),
+        )
+        answer = (response.output_text or "").strip()
+        return answer or None
+    except Exception:
+        # A missing key, provider outage, quota issue, or SDK mismatch must never
+        # bypass grounding. The deterministic fallback remains safe.
+        return None
+
+
+def _candidate(
+    query: str,
+    context: Any,
+    generator: Callable[[str, Any], str] | None = None,
+    conversation_history: list[dict[str, str]] | None = None,
+) -> str:
+    evidence = _evidence(context)
+    if generator:
+        return str(generator(query, context) or "")
+
+    llm_answer = _llm_candidate(query, evidence, conversation_history)
+    if llm_answer:
+        return llm_answer
+
+    if isinstance(context, dict) and context.get("candidate_answer"):
+        return str(context["candidate_answer"])
+    if isinstance(context, dict) and context.get("answer"):
+        return str(context["answer"])
+    return "\n".join(str(item["text"]) for item in evidence)
+
+
+def _confidence(
+    claims: list[dict[str, Any]],
+    citations: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+) -> str:
+    if not claims or not evidence:
+        return "LOW"
+    supported = sum(c.get("status") == "SUPPORTED" for c in claims)
+    contradicted = sum(c.get("status") == "CONTRADICTED" for c in claims)
+    valid = sum(bool(c.get("valid")) for c in citations)
+    if contradicted:
+        return "LOW"
+    ratio = supported / len(claims)
+    if ratio == 1 and (not citations or valid == len(citations)):
+        return "HIGH"
+    if ratio >= 0.5:
+        return "MEDIUM"
     return "LOW"
-def answer_with_grounding(query:str,context:Any=None,candidate_generator:Callable[[str,Any],str]|None=None)->dict:
-    evidence=_evidence(context); candidate=_candidate(query,context,candidate_generator); claims=verify_claims(extract_claims(candidate),evidence); citations=[]
-    for c in claims:
-        if c.get("status")=="SUPPORTED" and all(c.get(k) is not None for k in ("document","page","chunk_id")):citations.append({"claim_text":c["claim_text"],"document":c["document"],"page":c["page"],"chunk_id":c["chunk_id"]})
-    citations=validate_citations(citations,evidence,claims); established=[c["claim_text"] for c in claims if c.get("status")=="SUPPORTED"]; answer=" ".join(established) if established else _UNVERIFIED; unsupported=[c for c in claims if c.get("status")!="SUPPORTED"]
-    return {"answer":answer,"claims":claims,"citations":citations,"unsupported_claims":unsupported,"confidence":_confidence(claims,citations,evidence),"missing_information":[] if established else ["supporting evidence for the requested factual claims"],"route":route_request(query)["route"]}
-def grounded_rag_chat(query:str,top_k:int=5,candidate_generator=None)->dict:
-    return answer_with_grounding(query,retrieve(query,top_k=top_k),candidate_generator=candidate_generator)
+
+
+def answer_with_grounding(
+    query: str,
+    context: Any = None,
+    candidate_generator: Callable[[str, Any], str] | None = None,
+    conversation_history: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    evidence = _evidence(context)
+    candidate = _candidate(
+        query, context, candidate_generator, conversation_history
+    )
+
+    claims = verify_claims(extract_claims(candidate), evidence)
+    citations = []
+    for claim in claims:
+        if (
+            claim.get("status") == "SUPPORTED"
+            and all(claim.get(key) is not None for key in ("document", "page", "chunk_id"))
+        ):
+            citations.append(
+                {
+                    "claim_text": claim["claim_text"],
+                    "document": claim["document"],
+                    "page": claim["page"],
+                    "chunk_id": claim["chunk_id"],
+                }
+            )
+
+    citations = validate_citations(citations, evidence, claims)
+    established = [
+        claim["claim_text"]
+        for claim in claims
+        if claim.get("status") == "SUPPORTED"
+    ]
+    answer = " ".join(established) if established else _UNVERIFIED
+    unsupported = [
+        claim for claim in claims if claim.get("status") != "SUPPORTED"
+    ]
+
+    return {
+        "answer": answer,
+        "candidate_answer": candidate,
+        "claims": claims,
+        "citations": citations,
+        "unsupported_claims": unsupported,
+        "confidence": _confidence(claims, citations, evidence),
+        "missing_information": (
+            [] if established
+            else ["supporting evidence for the requested factual claims"]
+        ),
+        "route": route_request(query)["route"],
+        "llm_enabled": os.getenv("LLM_PROVIDER", "none").lower() == "openai"
+        and bool(os.getenv("OPENAI_API_KEY")),
+    }
+
+
+def grounded_rag_chat(
+    query: str,
+    top_k: int = 5,
+    candidate_generator=None,
+    conversation_history: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    evidence = retrieve(query, top_k=top_k)
+    return answer_with_grounding(
+        query,
+        evidence,
+        candidate_generator=candidate_generator,
+        conversation_history=conversation_history,
+    )
