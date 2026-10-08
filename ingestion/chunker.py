@@ -26,6 +26,20 @@ def chunk_pages(pages, chunk_size: int = 1200, overlap: int = 180):
                 chunk_id = make_chunk_id(document, page_number, index)
                 chunk_metadata = dict(metadata)
                 chunk_metadata["chunk_id"] = chunk_id
+                # Keep evaluation/test instructions out of the legal evidence
+                # corpus. This is intentionally conservative: a chunk is marked
+                # instructional only when multiple explicit dataset markers occur.
+                low_chunk = chunk.lower()
+                markers = (
+                    "test questions",
+                    "grounding test rule",
+                    "testing notes for the chatbot",
+                    "ask the chatbot questions",
+                )
+                marker_count = sum(marker in low_chunk for marker in markers)
+                chunk_metadata["content_type"] = (
+                    "EVALUATION_INSTRUCTIONS" if marker_count >= 2 else "LEGAL_EVIDENCE"
+                )
                 out.append({"text": chunk, "document": document, "page": page_number, "section": page.get("section", "") or "", "chunk_id": chunk_id, "metadata": chunk_metadata})
                 index += 1
             if end >= len(text):
