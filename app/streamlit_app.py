@@ -155,12 +155,13 @@ def render_result(r, workflow):
     st.caption(f"Workflow route: {route}")
 
     if workflow=="Grounded RAG Chat":
+        provider = {"gemini": "Gemini", "openai": "OpenAI"}.get(r.get("llm_provider"), "LLM")
         if r.get("llm_used"):
-            st.success("🤖 OpenAI reasoning active · response grounded against retrieved evidence.")
+            st.success(f"🤖 {provider} response generated · claims checked against retrieved evidence.")
         elif r.get("llm_enabled"):
-            st.warning("OpenAI is configured, but this response used the safe deterministic fallback. Check the model/API configuration.")
+            st.warning(f"{provider} is configured, but this response used the deterministic fallback. Check the model, API key and quota.")
         else:
-            st.warning("Deterministic fallback is active. OpenAI reasoning is not currently enabled.")
+            st.warning("Deterministic fallback is active. Configure Gemini or OpenAI to enable LLM responses.")
 
     if r.get("answer"):
         st.markdown("### Answer")
