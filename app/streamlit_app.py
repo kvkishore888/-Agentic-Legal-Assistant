@@ -1,7 +1,15 @@
 """Streamlit frontend for the integrated Agentic Legal Assistant."""
 from __future__ import annotations
+import sys
 import tempfile
 from pathlib import Path
+
+# Streamlit executes this file from the app/ directory. Ensure the repository
+# root is importable so the shared ingestion/retrieval/legal packages resolve.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import streamlit as st
 from ingestion.chunker import chunk_pages
 from ingestion.pdf_loader import load_documents
@@ -14,7 +22,7 @@ st.markdown("""<style>
 .status{font-weight:700}
 </style>""",unsafe_allow_html=True)
 WORKFLOWS=["Grounded RAG Chat","Case / Contract Review","Legal Drafting","Legal Research"]
-def init(): 
+def init():
     for k,v in {"documents":[],"chunks":[],"last_result":None}.items(): st.session_state.setdefault(k,v)
 def process(files):
     with tempfile.TemporaryDirectory() as tmp:
