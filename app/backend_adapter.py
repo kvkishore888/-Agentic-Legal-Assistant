@@ -6,14 +6,14 @@ from agent.router import route_request
 from legal.case_review import review_case
 from legal.drafting import draft_document
 from legal.research import research
-from retrieval.hybrid_search import retrieve as shared_retrieve
+from retrieval.hybrid_search import retrieve as shared_retrieve, retrieval_scope
 
 DRAFT_TYPES = ("legal notice", "petition", "affidavit", "bail")
 
 def retrieve(query: str, top_k: int = 5):
     return list(shared_retrieve(query, top_k=top_k))
 
-def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str = "legal notice",
+def _run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str = "legal notice",
                  conversation_context: list[dict[str, str]] | None = None) -> dict[str, Any]:
     context = conversation_context or []
     # Retrieval must be driven by the CURRENT user question. Conversation
@@ -26,7 +26,7 @@ def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str =
     if workflow == "Case / Contract Review":
         raw = review_case(query, top_k=top_k)
         return {"answer": "Case/contract review completed from retrieved evidence.",
-                "route": "CASE_CONTRACT_REVIEW", "evidence": evidence, **raw}
+                "route": "CASE_CONTRACT_REVIEW", **raw, "evidence": evidence}
     if workflow == "Legal Drafting":
         if document_type not in DRAFT_TYPES:
             raise ValueError(f"Unsupported document type: {document_type}")
@@ -43,3 +43,16 @@ def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str =
 
 def route(query: str):
     return route_request(query)
+
+
+def run_workflow(workflow, query, top_k=5, document_type="legal notice",
+                 conversation_context=None, retriever=None):
+    allowed = {"Grounded RAG Chat", "Case / Contract Review", "Legal Drafting", "Legal Research"}
+    if workflow not in allowed:
+        raise ValueError(f"Unsupported workflow: {workflow}")
+    if not isinstance(top_k, int) or isinstance(top_k, bool) or not 1 <= top_k <= 100:
+        raise ValueError("top_k must be an integer between 1 and 100")
+    if retriever is None:
+        return _run_workflow(workflow, query, top_k, document_type, conversation_context)
+    with retrieval_scope(retriever):
+        return _run_workflow(workflow, query, top_k, document_type, conversation_context)

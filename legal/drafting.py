@@ -53,7 +53,7 @@ def draft_document(document_type: str, query: str, *, top_k: int = 5, required_i
         citations = g.validate_citations(citations, hits, verification)
     except IntegrationError as exc:
         verification = [{"status": "VERIFICATION_UNAVAILABLE", "message": str(exc)}]
-    safe = bool(verification) and all(c.get("status") == "SUPPORTED" for c in verification if "claim_text" in c)
+    safe = bool(verification) and all("claim_text" in c and c.get("status") == "SUPPORTED" for c in verification) and bool(citations) and all(c.get("valid") for c in citations)
     status = "READY_FOR_REVIEW" if safe and not missing else "INCOMPLETE"
     return {
         "document_type": key,

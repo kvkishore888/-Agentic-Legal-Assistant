@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 from ingestion.chunker import chunk_pages
 from ingestion.pdf_loader import load_documents
-from retrieval.hybrid_search import HybridRetriever, configure
+from retrieval.hybrid_search import HybridRetriever
 from app.backend_adapter import DRAFT_TYPES, run_workflow
 
 st.set_page_config(page_title="Agentic Legal Assistant", page_icon="⚖️", layout="wide", initial_sidebar_state="expanded")
@@ -60,11 +60,16 @@ def process(files):
     with tempfile.TemporaryDirectory() as tmp:
         paths=[]
         for f in files:
-            p=Path(tmp)/f.name
+            name = Path(f.name).name
+            if name != f.name or name in [Path(x).name for x in paths]:
+                raise ValueError("Upload PDFs with unique plain filenames.")
+            p=Path(tmp)/name
             p.write_bytes(f.getvalue())
             paths.append(str(p))
         pages=load_documents(paths)
         chunks=chunk_pages(pages)
+        if not chunks:
+            raise ValueError("No readable text found. Upload a text PDF or enable OCR.")
         # Namespace the persistent vector collection by the exact uploaded
         # document set. A changed file or changed filename gets a new namespace,
         # preventing stale chunks from previous uploads from leaking into results.
@@ -75,7 +80,7 @@ def process(files):
         namespace = hashlib.sha256(manifest).hexdigest()[:16]
         r=HybridRetriever(namespace=namespace)
         r.index(chunks)
-        configure(r)
+        st.session_state.retriever=r
         st.session_state.documents=[{"name":Path(p).name,"pages":sum(x["document"]==Path(p).name for x in pages)} for p in paths]
         st.session_state.chunks=chunks
         st.session_state.chat_history=[]
@@ -261,8 +266,9 @@ def main():
         try:
             with st.spinner("Retrieving evidence and verifying the response…"):
                 prior=st.session_state.chat_history if workflow=="Grounded RAG Chat" else []
-                result=run_workflow(workflow,q,top_k,document_type,conversation_context=prior)
+                result=run_workflow(workflow,q,top_k,document_type,conversation_context=prior, retriever=st.session_state.retriever)
             st.session_state.last_result=result
+            st.session_state.last_workflow=workflow
             st.session_state.last_query=q
             if workflow=="Grounded RAG Chat":
                 st.session_state.chat_history += [{"role":"user","content":q},{"role":"assistant","content":result.get("answer","")}]
@@ -275,7 +281,8 @@ def main():
         st.markdown('<div class="empty"><div style="font-size:30px">🔎</div><h3>Your evidence workspace is ready</h3><p>Enter a question above to retrieve evidence and generate a verified response.</p></div>',unsafe_allow_html=True)
         return
 
-    render_result(r,workflow)
+    if st.session_state.get("last_workflow") == workflow:
+        render_result(r,workflow)
     st.caption("⚖️ Evidence-grounded prototype · Not legal advice")
 
 if __name__=="__main__":

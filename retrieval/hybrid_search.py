@@ -1,5 +1,7 @@
 """Hybrid legal retrieval using weighted reciprocal-rank fusion and optional reranking."""
 from __future__ import annotations
+from contextlib import contextmanager
+from contextvars import ContextVar
 from .embeddings import Embedder
 from .vector_store import VectorStore
 from .keyword_search import KeywordIndex
@@ -53,13 +55,22 @@ class HybridRetriever:
         ]
         return self.reranker.rerank(query, legal_only, top_k)
 
-_default = None
+_default = ContextVar("legal_retriever", default=None)
 
 def configure(retriever):
-    global _default
-    _default = retriever
+    _default.set(retriever)
 
 def retrieve(query, top_k=5):
-    if _default is None:
+    active = _default.get()
+    if active is None:
         raise RuntimeError("Configure the shared retriever before calling retrieve()")
-    return _default.retrieve(query, top_k)
+    return active.retrieve(query, top_k)
+
+@contextmanager
+def retrieval_scope(retriever):
+    """Bind evidence to this request and restore the prior context on failure."""
+    token = _default.set(retriever)
+    try:
+        yield
+    finally:
+        _default.reset(token)

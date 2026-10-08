@@ -18,6 +18,9 @@ def _evidence_items(context:Any):
     return []
 def _numbers(text): return set(re.findall(r"\b\d+(?:[.,]\d+)?\b",str(text or "")))
 def _support_score(claim,evidence):
+    sentences = re.split(r"(?<=[.!?])\s+|\n+", str(evidence))
+    if len(sentences) > 1:
+        return max((_support_score(claim, sentence) for sentence in sentences), default=0.0)
     ct,et=_tokens(claim),_tokens(evidence)
     if not ct or not et:return 0.0
     cn,en=_numbers(claim),_numbers(evidence)
