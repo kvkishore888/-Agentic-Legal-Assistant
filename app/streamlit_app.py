@@ -82,6 +82,11 @@ def main():
     r=st.session_state.last_result
     if not r: st.info("Upload documents, choose a workflow, and run an analysis."); return
     st.divider(); st.caption(f"Route: {r.get('route','workflow-specific')}")
+    if workflow=="Grounded RAG Chat":
+        if r.get("llm_enabled"):
+            st.success("Conversational AI: LLM reasoning enabled · evidence verification remains the final gate.")
+        else:
+            st.info("Conversational AI: deterministic fallback active. Set LLM_PROVIDER=openai and OPENAI_API_KEY to enable LLM reasoning.")
     if r.get("answer"): st.subheader("Answer"); st.write(r["answer"])
     if r.get("key_facts"):
         st.subheader("Key Facts"); st.dataframe(r["key_facts"],use_container_width=True)
