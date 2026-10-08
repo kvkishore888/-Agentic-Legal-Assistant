@@ -1,0 +1,18 @@
+[
+  {
+    "id": "case-001",
+    "document": "sample_fir.txt",
+    "content": "FIR-2026-001. The accused was arrested on 10 March 2026 at 18:30. The complaint was registered at Central Police Station.",
+    "question": "When was the accused arrested?",
+    "expected_answer": "The accused was arrested on 10 March 2026 at 18:30.",
+    "expected_sources": [{"document": "sample_fir.txt", "page": 1, "chunk_id": "sample_fir_p1_c1"}]
+  },
+  {
+    "id": "case-002",
+    "document": "sample_contract.txt",
+    "content": "Agreement term: The initial term is twelve months from the effective date. Either party may terminate for material breach after thirty days' written notice and an opportunity to cure.",
+    "question": "What is the initial term?",
+    "expected_answer": "The initial term is twelve months from the effective date.",
+    "expected_sources": [{"document": "sample_contract.txt", "page": 1, "chunk_id": "sample_contract_p1_c1"}]
+  }
+]
