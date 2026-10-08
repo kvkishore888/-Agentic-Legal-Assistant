@@ -13,16 +13,18 @@ DRAFT_TYPES = ("legal notice", "petition", "affidavit", "bail")
 def retrieve(query: str, top_k: int = 5):
     return list(shared_retrieve(query, top_k=top_k))
 
-def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str = "legal notice") -> dict[str, Any]:
-    evidence = retrieve(query, top_k)
+def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str = "legal notice",
+                 conversation_context: list[dict[str, str]] | None = None) -> dict[str, Any]:
+    context = conversation_context or []
+    retrieval_query = query
+    if workflow == "Grounded RAG Chat" and context:
+        prior = " ".join(f"{m.get('role','user')}: {m.get('content','')}" for m in context[-6:])
+        retrieval_query = f"{prior} user: {query}"
+    evidence = retrieve(retrieval_query, top_k)
     if workflow == "Case / Contract Review":
         raw = review_case(query, top_k=top_k)
-        return {
-            "answer": "Case/contract review completed from retrieved evidence.",
-            "route": "CASE_CONTRACT_REVIEW",
-            "evidence": evidence,
-            **raw,
-        }
+        return {"answer": "Case/contract review completed from retrieved evidence.",
+                "route": "CASE_CONTRACT_REVIEW", "evidence": evidence, **raw}
     if workflow == "Legal Drafting":
         if document_type not in DRAFT_TYPES:
             raise ValueError(f"Unsupported document type: {document_type}")
@@ -30,12 +32,8 @@ def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str =
         return {"route": "LEGAL_DRAFTING", "evidence": evidence, **raw}
     if workflow == "Legal Research":
         raw = research(query, top_k=top_k)
-        return {
-            "answer": "Research results are shown below. External authorities remain unverified unless their citation is validated.",
-            "route": "LEGAL_RESEARCH",
-            "evidence": evidence,
-            **raw,
-        }
+        return {"answer": "Research is grounded in indexed sources. External authority is shown as verified only when its source metadata and evidence validate it.",
+                "route": "LEGAL_RESEARCH", "evidence": evidence, **raw}
     raw = answer_with_grounding(query, evidence)
     return {"route": "GROUNDED_RAG_CHAT", "evidence": evidence, **raw}
 
