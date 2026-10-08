@@ -3,6 +3,7 @@ chromadb>=0.5
 sentence-transformers>=3.0
 numpy>=1.26
 pytest>=8.0
+streamlit>=1.38
 # Optional OCR:
 pytesseract>=0.3.13
 Pillow>=10.0
