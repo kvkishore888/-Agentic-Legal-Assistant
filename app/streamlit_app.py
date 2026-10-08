@@ -32,47 +32,50 @@ st.markdown(
     """
 <style>
 #MainMenu, footer {visibility:hidden}
-.block-container {padding:1.15rem 2.2rem 3.5rem;max-width:1550px}
-[data-testid="stSidebar"] {border-right:1px solid rgba(148,163,184,.16)}
+.block-container {padding:1.1rem 2rem 3.5rem;max-width:1500px}
+[data-testid="stSidebar"] {border-right:1px solid #d8d8d8;background:#f7f7f7}
 [data-testid="stSidebar"] > div {padding-top:1rem}
-[data-testid="stMetric"] {background:rgba(15,23,42,.42);border:1px solid rgba(148,163,184,.14);padding:12px 14px;border-radius:14px}
-.stButton>button,.stDownloadButton>button {border-radius:11px;font-weight:700}
+[data-testid="stMetric"] {background:#fff;border:1px solid #d5d5d5;padding:12px 14px;border-radius:4px;box-shadow:none}
+.stButton>button,.stDownloadButton>button {border-radius:4px;font-weight:700;box-shadow:none}
+.stButton>button[kind="primary"] {background:#111;color:#fff;border:1px solid #111}
+.stButton>button:hover {border-color:#000}
 .brand {display:flex;align-items:center;gap:12px;margin:3px 0 22px}
-.logo {width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 8px 28px rgba(37,99,235,.22)}
-.brand-title {font-size:18px;font-weight:800;line-height:1.05}
-.brand-sub {font-size:10px;color:#94a3b8;margin-top:5px;letter-spacing:.4px;text-transform:uppercase}
-.hero {position:relative;overflow:hidden;padding:28px 30px;border-radius:24px;background:radial-gradient(circle at 85% 15%,rgba(59,130,246,.18),transparent 34%),linear-gradient(135deg,rgba(124,58,237,.17),rgba(15,23,42,.55));border:1px solid rgba(139,92,246,.25);margin-bottom:16px}
-.hero:after {content:"";position:absolute;right:-90px;bottom:-110px;width:270px;height:270px;border:1px solid rgba(96,165,250,.15);border-radius:50%;box-shadow:0 0 0 28px rgba(96,165,250,.035),0 0 0 58px rgba(96,165,250,.025)}
-.hero h1 {margin:0;font-size:35px;letter-spacing:-1.2px}
-.hero p {margin:8px 0 0;color:#94a3b8;font-size:14px}
-.eyebrow {font-size:10px;letter-spacing:1.4px;font-weight:800;color:#a78bfa;margin-bottom:8px}
-.pill {display:inline-block;padding:5px 10px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(34,197,94,.11);color:#4ade80;border:1px solid rgba(34,197,94,.18);margin-bottom:10px}
-.panel {padding:17px;border:1px solid rgba(148,163,184,.16);border-radius:16px;background:rgba(15,23,42,.30);margin:8px 0}
-.panel-title {font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:#94a3b8;font-weight:800;margin-bottom:10px}
-.workflow-card {padding:14px 15px;border:1px solid rgba(148,163,184,.15);border-radius:14px;background:rgba(15,23,42,.22);min-height:100px}
-.workflow-card.active {border-color:rgba(129,140,248,.5);background:linear-gradient(135deg,rgba(124,58,237,.13),rgba(37,99,235,.07))}
-.workflow-icon {font-size:22px}
-.workflow-code {font-family:monospace;font-size:9px;color:#818cf8;letter-spacing:1px;font-weight:800}
-.workflow-name {font-weight:750;font-size:13px;margin-top:5px}
-.workflow-desc {font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.45}
+.logo {width:44px;height:44px;border-radius:3px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px}
+.brand-title {font-size:18px;font-weight:800;line-height:1.05;color:#111}
+.brand-sub {font-size:9px;color:#666;margin-top:5px;letter-spacing:1.1px;text-transform:uppercase}
+.hero {position:relative;overflow:hidden;padding:30px 32px;border-radius:3px;background:#111;color:#fff;border:1px solid #111;margin-bottom:18px}
+.hero h1 {margin:0;font-size:36px;letter-spacing:-1.3px;color:#fff}
+.hero p {margin:9px 0 0;color:#cfcfcf;font-size:14px}
+.eyebrow {font-size:10px;letter-spacing:1.7px;font-weight:800;color:#fff;margin-bottom:9px}
+.pill {display:inline-block;padding:5px 9px;border-radius:2px;font-size:9px;font-weight:800;background:#fff;color:#111;border:1px solid #fff;margin-bottom:11px}
+.panel {padding:17px;border:1px solid #d7d7d7;border-radius:4px;background:#fff;margin:8px 0;box-shadow:none}
+.panel-title {font-size:11px;text-transform:uppercase;letter-spacing:1.1px;color:#555;font-weight:800;margin-bottom:10px}
+.workflow-card {padding:14px 15px;border:1px solid #d7d7d7;border-radius:4px;background:#fff;min-height:100px}
+.workflow-card.active {border-color:#111;background:#f2f2f2;box-shadow:inset 3px 0 0 #111}
+.workflow-icon {font-size:20px;filter:grayscale(1)}
+.workflow-code {font-family:monospace;font-size:9px;color:#333;letter-spacing:1px;font-weight:800}
+.workflow-name {font-weight:750;font-size:13px;margin-top:5px;color:#111}
+.workflow-desc {font-size:11px;color:#666;margin-top:4px;line-height:1.45}
 .pipeline {display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 15px}
-.node {padding:7px 10px;border:1px solid rgba(148,163,184,.16);border-radius:9px;background:rgba(15,23,42,.34);font-size:10px;color:#cbd5e1}
-.node.active {border-color:rgba(96,165,250,.45);color:#93c5fd;background:rgba(37,99,235,.08)}
-.arrow {color:#64748b;font-size:12px}
-.source {padding:15px 16px;border:1px solid rgba(148,163,184,.15);border-radius:14px;margin:9px 0;background:linear-gradient(135deg,rgba(15,23,42,.38),rgba(15,23,42,.18))}
-.source:hover {border-color:rgba(96,165,250,.35)}
-.source-title {font-weight:750;font-size:13px}
-.source-meta {font-size:10px;color:#94a3b8;margin:4px 0 9px;font-family:monospace}
-.source-text {font-size:12px;line-height:1.6;color:#dbe4f0}
-.badge {display:inline-block;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:850;letter-spacing:.3px;margin-right:6px}
-.good {background:rgba(34,197,94,.12);color:#4ade80}
-.warn {background:rgba(245,158,11,.12);color:#fbbf24}
-.bad {background:rgba(239,68,68,.12);color:#f87171}
-.neutral {background:rgba(148,163,184,.11);color:#cbd5e1}
-.trace {font-family:monospace;font-size:10px;color:#94a3b8;line-height:1.7}
-.empty {padding:55px 25px;text-align:center;border:1px dashed rgba(148,163,184,.23);border-radius:20px;color:#94a3b8;background:rgba(15,23,42,.15)}
-.small {font-size:11px;color:#94a3b8}
-.chat-q {padding:11px 13px;border-left:2px solid #6366f1;background:rgba(99,102,241,.06);font-size:12px;color:#cbd5e1;border-radius:0 10px 10px 0;margin:8px 0}
+.node {padding:7px 10px;border:1px solid #d5d5d5;border-radius:3px;background:#fafafa;font-size:10px;color:#333}
+.node.active {border-color:#111;color:#111;background:#eee}
+.arrow {color:#888;font-size:12px}
+.source {padding:15px 16px;border:1px solid #d7d7d7;border-radius:4px;margin:9px 0;background:#fff}
+.source:hover {border-color:#111}
+.source-title {font-weight:750;font-size:13px;color:#111}
+.source-meta {font-size:10px;color:#666;margin:4px 0 9px;font-family:monospace}
+.source-text {font-size:12px;line-height:1.6;color:#222}
+.badge {display:inline-block;padding:4px 8px;border-radius:2px;font-size:9px;font-weight:850;letter-spacing:.3px;margin-right:6px;border:1px solid #bbb;background:#f5f5f5;color:#222}
+.good,.warn,.bad,.neutral {background:#f5f5f5;color:#111;border-color:#999}
+.trace {font-family:monospace;font-size:10px;color:#666;line-height:1.7}
+.empty {padding:55px 25px;text-align:center;border:1px dashed #bbb;border-radius:4px;color:#666;background:#fff}
+.small {font-size:11px;color:#666}
+.chat-q {padding:11px 13px;border-left:2px solid #111;background:#f5f5f5;font-size:12px;color:#222;border-radius:0 3px 3px 0;margin:8px 0}
+[data-testid="stExpander"] {border:1px solid #d7d7d7;border-radius:4px;background:#fff}
+[data-testid="stTabs"] button {color:#555}
+[data-testid="stTabs"] button[aria-selected="true"] {color:#111;border-bottom-color:#111}
+[data-testid="stTextInput"] input,[data-testid="stTextArea"] textarea {border-radius:4px;border:1px solid #bbb}
+[data-testid="stFileUploaderDropzone"] {border:1px dashed #aaa;background:#fff;border-radius:4px}
 </style>
 """,
     unsafe_allow_html=True,
