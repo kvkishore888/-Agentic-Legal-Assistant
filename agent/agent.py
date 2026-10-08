@@ -131,7 +131,35 @@ def _candidate(
         return str(context["candidate_answer"])
     if isinstance(context, dict) and context.get("answer"):
         return str(context["answer"])
-    return "\n".join(str(item["text"]) for item in evidence)
+    return _extractive_fallback(query, evidence)
+
+def _extractive_fallback(query: str, evidence: list[dict[str, Any]]) -> str:
+    """Return a small, grounded answer from the best matching evidence sentences."""
+    import re
+
+    stop = {"what","when","where","who","which","how","why","was","were","is","are","the","a","an","of","on","in","to","for","from","did","does","do","tell","me","about","and","or","with"}
+    query_tokens = {t for t in re.findall(r"[a-z0-9]+", query.lower()) if len(t) > 2 and t not in stop}
+    candidates = []
+    for item in evidence:
+        text = str(item.get("text", ""))
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", text):
+            sentence = re.sub(r"\s+", " ", sentence).strip()
+            if len(sentence.split()) < 4:
+                continue
+            low = sentence.lower()
+            if "testing notes for the chatbot" in low or "ask the chatbot questions" in low:
+                continue
+            words = set(re.findall(r"[a-z0-9]+", low))
+            overlap = len(query_tokens & words)
+            if overlap:
+                score = overlap / max(1, len(query_tokens))
+                if any(ch.isdigit() for ch in sentence):
+                    score += 0.08
+                candidates.append((score, -len(sentence), sentence))
+    candidates.sort(reverse=True)
+    if not candidates:
+        return _UNVERIFIED
+    return candidates[0][2]
 
 
 def _confidence(
