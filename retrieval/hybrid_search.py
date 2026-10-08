@@ -1,26 +1,28 @@
-"""Hybrid retrieval combining vector and keyword evidence."""
+"""Hybrid legal retrieval using weighted RRF and optional reranking."""
 from .embeddings import Embedder
 from .vector_store import VectorStore
 from .keyword_search import KeywordIndex
 from .reranker import Reranker
-
 class HybridRetriever:
-    def __init__(self,store=None,embedder=None,reranker=None):
-        self.embedder=embedder or Embedder(); self.store=store or VectorStore()
-        self.keyword=KeywordIndex(); self.reranker=reranker or Reranker()
+    def __init__(self,store=None,embedder=None,reranker=None,vector_weight=1.,keyword_weight=1.,rrf_k=60):
+        if vector_weight<0 or keyword_weight<0 or vector_weight+keyword_weight==0: raise ValueError("Invalid retrieval weights")
+        self.embedder=embedder or Embedder(); self.store=store or VectorStore(); self.keyword=KeywordIndex(); self.reranker=reranker or Reranker()
+        self.vector_weight,self.keyword_weight,self.rrf_k=vector_weight,keyword_weight,rrf_k
     def index(self,chunks):
-        self.keyword.add(chunks); self.store.upsert(chunks,self.embedder.encode([c["text"] for c in chunks]))
+        chunks=list(chunks); self.keyword.add(chunks)
+        if chunks:self.store.upsert(chunks,self.embedder.encode([c["text"] for c in chunks]))
     def retrieve(self,query,top_k=5,where=None):
-        vector=self.store.search(self.embedder.encode([query])[0],max(top_k*2,10),where)
-        keyword=self.keyword.search(query,max(top_k*2,10))
-        merged={}
-        for r in vector+keyword:
-            merged.setdefault(r["chunk_id"],r)
-            if r["chunk_id"] in merged: merged[r["chunk_id"]]["score"]=max(merged[r["chunk_id"]]["score"],r["score"])
-        return self.reranker.rerank(query,list(merged.values()),top_k)
-
+        if top_k<=0:return []
+        candidate_k=max(top_k*4,20); vector=self.store.search(self.embedder.encode([query])[0],candidate_k,where); keyword=self.keyword.search(query,candidate_k); merged={}
+        def add(results,weight,source):
+            for rank,item in enumerate(results,1):
+                cid=item["chunk_id"]; entry=merged.setdefault(cid,dict(item)); entry["fusion_score"]=entry.get("fusion_score",0.)+weight/(self.rrf_k+rank)
+                entry.setdefault("retrieval_sources",[])
+                if source not in entry["retrieval_sources"]: entry["retrieval_sources"].append(source)
+        add(vector,self.vector_weight,"vector"); add(keyword,self.keyword_weight,"keyword")
+        return self.reranker.rerank(query,sorted(merged.values(),key=lambda r:r["fusion_score"],reverse=True),top_k)
 _default=None
-def configure(retriever): 
+def configure(retriever):
     global _default; _default=retriever
 def retrieve(query,top_k=5):
     if _default is None: raise RuntimeError("Configure the shared retriever before calling retrieve()")
