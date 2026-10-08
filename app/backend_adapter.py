@@ -39,7 +39,7 @@ def _run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str 
     raw = answer_with_grounding(query, evidence, conversation_history=context)
     # The selected UI workflow is authoritative; the natural-language router
     # is useful for intent hints but must not relabel the active workflow.
-    return {"route": "GROUNDED_RAG_CHAT", "evidence": evidence, **raw}
+    return {**raw, "route": "GROUNDED_RAG_CHAT", "evidence": evidence}
 
 def route(query: str):
     return route_request(query)

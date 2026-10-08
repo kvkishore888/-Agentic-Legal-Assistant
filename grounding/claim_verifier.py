@@ -24,7 +24,7 @@ def _support_score(claim,evidence):
     ct,et=_tokens(claim),_tokens(evidence)
     if not ct or not et:return 0.0
     cn,en=_numbers(claim),_numbers(evidence)
-    if cn and en and cn!=en:return 0.0
+    if cn and cn!=en:return 0.0
     if _norm(claim)==_norm(evidence):return 1.0
     return len(ct&et)/len(ct)
 def verify_claims(claims:list[dict],context:Any,min_support:float=.72)->list[dict]:
@@ -32,10 +32,13 @@ def verify_claims(claims:list[dict],context:Any,min_support:float=.72)->list[dic
     for original in claims or []:
         claim=dict(original); positives=[]; opposites=[]
         for item in evidence:
-            text=item.get("text",""); score=_support_score(claim.get("claim_text",""),text)
-            same_neg=_negated(claim.get("claim_text",""))==_negated(text)
-            if score>=min_support and same_neg: positives.append((score,item))
-            elif score>=min_support and not same_neg: opposites.append((score,item))
+            for text in re.split(r"(?<=[.!?])\s+|\n+", item.get("text", "")):
+                score = _support_score(claim.get("claim_text", ""), text)
+                same_neg = _negated(claim.get("claim_text", "")) == _negated(text)
+                if score >= min_support and same_neg:
+                    positives.append((score, item))
+                elif score >= min_support and not same_neg:
+                    opposites.append((score, item))
         positives.sort(key=lambda x:x[0],reverse=True); opposites.sort(key=lambda x:x[0],reverse=True)
         if positives:
             score,best=positives[0]; claim["status"]="SUPPORTED" if score>=.85 else "PARTIALLY_SUPPORTED"

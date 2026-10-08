@@ -36,3 +36,20 @@ def test_supported_claim_cannot_validate_another_claim_in_same_chunk():
     supported = {**source,"claim_text":"The amount is 100 rupees.","status":"SUPPORTED"}
     forged = {**source,"claim_text":"The amount is 999 rupees."}
     assert not validate_citations([forged], [source], [supported])[0]["valid"]
+
+
+def test_selected_chat_route_survives_intent_router():
+    result = run_workflow("Grounded RAG Chat", "review contract value", retriever=Fake("a.pdf"))
+    assert result["route"] == "GROUNDED_RAG_CHAT"
+
+def test_unrelated_negative_sentence_does_not_negate_supported_claim():
+    from grounding.claim_verifier import verify_claims
+    claim = {"claim_text":"The contract value is 240000 rupees."}
+    evidence = [{"text":"The contract value is 240000 rupees. Payment was not received."}]
+    assert verify_claims([claim], evidence)[0]["status"] == "SUPPORTED"
+
+def test_invented_number_requires_numeric_evidence():
+    from grounding.claim_verifier import verify_claims
+    claim = {"claim_text":"The total contract value is 240000 rupees."}
+    evidence = [{"text":"The total contract value is stated in rupees."}]
+    assert verify_claims([claim], evidence)[0]["status"] != "SUPPORTED"

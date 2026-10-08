@@ -14,4 +14,7 @@ def ocr_page(page: Any, language: str = "eng", dpi: int = 200) -> str:
         raise RuntimeError("OCR requires PyMuPDF, pytesseract, and Pillow") from exc
     pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72.0, dpi / 72.0), alpha=False)
     image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-    return pytesseract.image_to_string(image, lang=language).strip()
+    try:
+        return pytesseract.image_to_string(image, lang=language).strip()
+    except (pytesseract.TesseractNotFoundError, pytesseract.TesseractError) as exc:
+        raise RuntimeError("OCR engine unavailable or failed") from exc
