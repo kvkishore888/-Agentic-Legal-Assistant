@@ -7,6 +7,7 @@ from legal.case_review import review_case
 from legal.drafting import draft_document
 from legal.research import research
 from retrieval.hybrid_search import retrieve as shared_retrieve, retrieval_scope
+from agent.relevance_guard import guard_query
 
 DRAFT_TYPES = ("legal notice", "petition", "affidavit", "bail")
 
@@ -22,6 +23,21 @@ def _run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str 
     retrieval_query = query.strip()
     if not retrieval_query:
         raise ValueError("Please enter a question.")
+
+    guard = guard_query(retrieval_query)
+    if not guard["allowed"]:
+        return {
+            "answer": guard["message"],
+            "route": "CASE_RELEVANCE_GUARD",
+            "guard_blocked": True,
+            "guard_reason": guard["reason"],
+            "suggestions": guard["suggestions"],
+            "evidence": [],
+            "claims": [],
+            "citations": [],
+            "confidence": "LOW",
+        }
+
     evidence = retrieve(retrieval_query, top_k)
     if workflow == "Case / Contract Review":
         raw = review_case(query, top_k=top_k)

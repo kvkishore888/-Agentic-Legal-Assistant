@@ -54,24 +54,26 @@ def _history_messages(history: list[dict[str, str]] | None) -> list[dict[str, st
     return messages
 
 
+def llm_configuration():
+    """Select a provider without exposing credentials to results or the UI."""
+    provider = os.getenv("LLM_PROVIDER", "auto").strip().lower()
+    if provider == "auto":
+        provider = "gemini" if os.getenv("GEMINI_API_KEY", "").strip() else "openai" if os.getenv("OPENAI_API_KEY", "").strip() else "none"
+    key_name = {"gemini": "GEMINI_API_KEY", "openai": "OPENAI_API_KEY"}.get(provider)
+    return provider, bool(key_name and os.getenv(key_name, "").strip())
+
+
 def _llm_candidate(
     query: str,
     evidence: list[dict[str, Any]],
     conversation_history: list[dict[str, str]] | None = None,
 ) -> str | None:
     """Generate a conversational candidate answer, or None when LLM is unavailable."""
-    provider = os.getenv("LLM_PROVIDER", "none").strip().lower()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if provider != "openai" or not api_key:
+    provider, enabled = llm_configuration()
+    if not enabled:
         return None
 
     try:
-        from openai import OpenAI
-
-        client = OpenAI(api_key=api_key)
-        model = (os.getenv("LLM_MODEL") or os.getenv("OPENAI_MODEL") or "gpt-6-luna").strip()
-        if not model:
-            return None
         try:
             max_output_tokens = max(64, min(4000, int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "700"))))
         except (TypeError, ValueError):
@@ -105,13 +107,34 @@ Return only the answer text; do not output JSON or analysis."""
             f"{query}"
         )
 
-        response = client.responses.create(
-            model=model,
-            instructions=instructions,
-            input=history + [{"role": "user", "content": prompt}],
-            max_output_tokens=max_output_tokens,
-        )
-        answer = (response.output_text or "").strip()
+        if provider == "gemini":
+            from google import genai
+            from google.genai import types
+            model = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
+            contents = [types.Content(
+                role="model" if message["role"] == "assistant" else "user",
+                parts=[types.Part.from_text(text=message["content"])],
+            ) for message in history + [{"role": "user", "content": prompt}]]
+            with genai.Client(api_key=os.environ["GEMINI_API_KEY"].strip(),
+                              http_options=types.HttpOptions(timeout=30000)) as client:
+                response = client.models.generate_content(
+                    model=model, contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=instructions,
+                        max_output_tokens=max_output_tokens,
+                    ),
+                )
+                answer = (response.text or "").strip()
+        else:
+            from openai import OpenAI
+            model = (os.getenv("LLM_MODEL") or os.getenv("OPENAI_MODEL") or "gpt-6-luna").strip()
+            with OpenAI(api_key=os.environ["OPENAI_API_KEY"].strip(), timeout=30, max_retries=0) as client:
+                response = client.responses.create(
+                    model=model, instructions=instructions,
+                    input=history + [{"role": "user", "content": prompt}],
+                    max_output_tokens=max_output_tokens,
+                )
+                answer = (response.output_text or "").strip()
         return answer or None
     except Exception as exc:
         # A provider failure must never bypass grounding. The deterministic
@@ -264,8 +287,8 @@ def answer_with_grounding(
         "route": route_request(query)["route"],
         # This indicates configuration, not a successful provider call. The UI
         # should distinguish enabled configuration from an actual LLM response.
-        "llm_enabled": os.getenv("LLM_PROVIDER", "none").lower() == "openai"
-        and bool(os.getenv("OPENAI_API_KEY")),
+        "llm_enabled": llm_configuration()[1],
+        "llm_provider": llm_configuration()[0],
         "llm_used": llm_used,
     }
 
