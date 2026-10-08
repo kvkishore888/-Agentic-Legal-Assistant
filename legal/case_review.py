@@ -4,7 +4,7 @@ import re
 from .shared import retrieve,source_ref
 from .contradiction import find_contradictions
 from .missing_info import detect_case_missing_information
-_PATTERNS=(("date",r"\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},\s+\d{4})\b"),("amount",r"(?:₹|Rs\.?|INR|\$|USD)\s?[\d,]+(?:\.\d+)?"),("section",r"\b(?:Section|Sec\.?)\s*\d+[A-Za-z0-9()/-]*")]
+_PATTERNS=(("date",r"\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},\s+\d{4})\b"),("amount",r"(?:₹|Rs\.?|INR|\$|USD)\s?[\d,]+(?:\.\d+)?"),("section",r"\b(?:Section|Sec\.?)\s*\d+[A-Za-z0-9()/-]*"))
 def _facts(hits):
     facts=[]
     for h in hits:
