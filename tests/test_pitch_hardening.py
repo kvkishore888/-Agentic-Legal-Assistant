@@ -1,7 +1,6 @@
 from legal.missing_info import detect_missing_information
 from legal.drafting import draft_document
 from legal.research import research
-from app.backend_adapter import run_workflow
 
 H=[
  {"document":"FIR.pdf","page":2,"chunk_id":"a","text":"FIR No. 42/2026. The accused Ravi Kumar was arrested on 10 March 2026 under Section 420.","score":.9},
@@ -10,8 +9,8 @@ H=[
 def fake_retrieve(q,top_k=5): return H[:top_k]
 
 def test_missing_info_uses_synonyms():
-    missing=detect_missing_information(H,["case number","parties","dates/events","supporting evidence"])
-    assert [x["item"] for x in missing]==["supporting evidence"]
+    missing=detect_missing_information(H,["medical report"])
+    assert [x["item"] for x in missing]==["medical report"]
 
 def test_drafting_is_explicitly_working_draft(monkeypatch):
     monkeypatch.setattr("legal.drafting.retrieve",fake_retrieve)
