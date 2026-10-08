@@ -31,51 +31,64 @@ WORKFLOWS = [
 st.markdown(
     """
 <style>
+:root { color-scheme: light !important; }
+html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] { background:#ffffff !important; color:#111111 !important; }
+[data-testid="stHeader"] { background:#ffffff !important; border-bottom:1px solid #111 !important; }
 #MainMenu, footer {visibility:hidden}
-.block-container {padding:1.1rem 2rem 3.5rem;max-width:1500px}
-[data-testid="stSidebar"] {border-right:1px solid #d8d8d8;background:#f7f7f7}
-[data-testid="stSidebar"] > div {padding-top:1rem}
-[data-testid="stMetric"] {background:#fff;border:1px solid #d5d5d5;padding:12px 14px;border-radius:4px;box-shadow:none}
-.stButton>button,.stDownloadButton>button {border-radius:4px;font-weight:700;box-shadow:none}
-.stButton>button[kind="primary"] {background:#111;color:#fff;border:1px solid #111}
-.stButton>button:hover {border-color:#000}
+.block-container {padding:0 2.4rem 4rem;max-width:1480px}
+[data-testid="stSidebar"] {background:#f4f4f4 !important;border-right:1px solid #111 !important}
+[data-testid="stSidebar"] * {color:#111 !important}
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {background:#fff !important}
+[data-testid="stMetric"] {background:#fff !important;border:1px solid #111 !important;border-radius:0 !important;padding:14px !important;box-shadow:none !important}
+[data-testid="stMetricLabel"], [data-testid="stMetricValue"] {color:#111 !important}
+.stButton>button,.stDownloadButton>button {border-radius:0 !important;font-weight:750 !important;box-shadow:none !important;border:1px solid #111 !important;background:#fff !important;color:#111 !important}
+.stButton>button[kind="primary"] {background:#111 !important;color:#fff !important;border-color:#111 !important}
+.stButton>button:hover {background:#e9e9e9 !important;color:#111 !important}
+.stButton>button[kind="primary"]:hover {background:#333 !important;color:#fff !important}
 .brand {display:flex;align-items:center;gap:12px;margin:3px 0 22px}
-.logo {width:44px;height:44px;border-radius:3px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px}
-.brand-title {font-size:18px;font-weight:800;line-height:1.05;color:#111}
-.brand-sub {font-size:9px;color:#666;margin-top:5px;letter-spacing:1.1px;text-transform:uppercase}
-.hero {position:relative;overflow:hidden;padding:30px 32px;border-radius:3px;background:#111;color:#fff;border:1px solid #111;margin-bottom:18px}
-.hero h1 {margin:0;font-size:36px;letter-spacing:-1.3px;color:#fff}
-.hero p {margin:9px 0 0;color:#cfcfcf;font-size:14px}
-.eyebrow {font-size:10px;letter-spacing:1.7px;font-weight:800;color:#fff;margin-bottom:9px}
-.pill {display:inline-block;padding:5px 9px;border-radius:2px;font-size:9px;font-weight:800;background:#fff;color:#111;border:1px solid #fff;margin-bottom:11px}
-.panel {padding:17px;border:1px solid #d7d7d7;border-radius:4px;background:#fff;margin:8px 0;box-shadow:none}
-.panel-title {font-size:11px;text-transform:uppercase;letter-spacing:1.1px;color:#555;font-weight:800;margin-bottom:10px}
-.workflow-card {padding:14px 15px;border:1px solid #d7d7d7;border-radius:4px;background:#fff;min-height:100px}
-.workflow-card.active {border-color:#111;background:#f2f2f2;box-shadow:inset 3px 0 0 #111}
+.logo {width:44px;height:44px;border-radius:0;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px}
+.brand-title {font-size:18px;font-weight:850;line-height:1.05;color:#111}
+.brand-sub {font-size:9px;color:#555 !important;margin-top:5px;letter-spacing:1.2px;text-transform:uppercase}
+.hero {padding:38px 38px !important;border-radius:0 !important;background:#111 !important;color:#fff !important;border:1px solid #111 !important;margin:0 -0.5rem 24px !important}
+.hero h1 {margin:0;font-size:40px;letter-spacing:-1.5px;color:#fff !important}
+.hero p {margin:10px 0 0;color:#d2d2d2 !important;font-size:14px}
+.eyebrow {font-size:10px;letter-spacing:2px;font-weight:850;color:#fff !important;margin-bottom:10px}
+.pill {display:inline-block;padding:5px 9px;border-radius:0;font-size:9px;font-weight:850;background:#fff !important;color:#111 !important;border:1px solid #fff;margin-bottom:12px}
+.panel {padding:18px !important;border:1px solid #c9c9c9 !important;border-radius:0 !important;background:#fff !important;margin:10px 0 !important;box-shadow:none !important;color:#111 !important}
+.panel-title {font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:#555 !important;font-weight:850;margin-bottom:11px}
+.workflow-card {padding:16px !important;border:1px solid #c9c9c9 !important;border-radius:0 !important;background:#fff !important;min-height:108px}
+.workflow-card.active {border-color:#111 !important;background:#eee !important;box-shadow:inset 4px 0 0 #111 !important}
 .workflow-icon {font-size:20px;filter:grayscale(1)}
-.workflow-code {font-family:monospace;font-size:9px;color:#333;letter-spacing:1px;font-weight:800}
-.workflow-name {font-weight:750;font-size:13px;margin-top:5px;color:#111}
-.workflow-desc {font-size:11px;color:#666;margin-top:4px;line-height:1.45}
+.workflow-code {font-family:monospace;font-size:9px;color:#333 !important;letter-spacing:1.2px;font-weight:850}
+.workflow-name {font-weight:800;font-size:13px;margin-top:6px;color:#111 !important}
+.workflow-desc {font-size:11px;color:#666 !important;margin-top:5px;line-height:1.45}
 .pipeline {display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 15px}
-.node {padding:7px 10px;border:1px solid #d5d5d5;border-radius:3px;background:#fafafa;font-size:10px;color:#333}
-.node.active {border-color:#111;color:#111;background:#eee}
-.arrow {color:#888;font-size:12px}
-.source {padding:15px 16px;border:1px solid #d7d7d7;border-radius:4px;margin:9px 0;background:#fff}
-.source:hover {border-color:#111}
-.source-title {font-weight:750;font-size:13px;color:#111}
-.source-meta {font-size:10px;color:#666;margin:4px 0 9px;font-family:monospace}
-.source-text {font-size:12px;line-height:1.6;color:#222}
-.badge {display:inline-block;padding:4px 8px;border-radius:2px;font-size:9px;font-weight:850;letter-spacing:.3px;margin-right:6px;border:1px solid #bbb;background:#f5f5f5;color:#222}
-.good,.warn,.bad,.neutral {background:#f5f5f5;color:#111;border-color:#999}
-.trace {font-family:monospace;font-size:10px;color:#666;line-height:1.7}
-.empty {padding:55px 25px;text-align:center;border:1px dashed #bbb;border-radius:4px;color:#666;background:#fff}
-.small {font-size:11px;color:#666}
-.chat-q {padding:11px 13px;border-left:2px solid #111;background:#f5f5f5;font-size:12px;color:#222;border-radius:0 3px 3px 0;margin:8px 0}
-[data-testid="stExpander"] {border:1px solid #d7d7d7;border-radius:4px;background:#fff}
-[data-testid="stTabs"] button {color:#555}
-[data-testid="stTabs"] button[aria-selected="true"] {color:#111;border-bottom-color:#111}
-[data-testid="stTextInput"] input,[data-testid="stTextArea"] textarea {border-radius:4px;border:1px solid #bbb}
-[data-testid="stFileUploaderDropzone"] {border:1px dashed #aaa;background:#fff;border-radius:4px}
+.node {padding:7px 10px;border:1px solid #c9c9c9 !important;border-radius:0;background:#fafafa !important;font-size:10px;color:#222 !important}
+.node.active {border-color:#111 !important;color:#fff !important;background:#111 !important}
+.arrow {color:#777 !important;font-size:12px}
+.source {padding:16px;border:1px solid #c9c9c9 !important;border-radius:0;margin:9px 0;background:#fff !important;color:#111 !important}
+.source:hover {border-color:#111 !important}
+.source-title {font-weight:800;font-size:13px;color:#111 !important}
+.source-meta {font-size:10px;color:#666 !important;margin:4px 0 9px;font-family:monospace}
+.source-text {font-size:12px;line-height:1.65;color:#222 !important}
+.badge {display:inline-block;padding:4px 8px;border-radius:0;font-size:9px;font-weight:850;letter-spacing:.4px;margin-right:6px;border:1px solid #777;background:#eee !important;color:#111 !important}
+.good,.warn,.bad,.neutral {background:#eee !important;color:#111 !important;border-color:#777 !important}
+.trace {font-family:monospace;font-size:10px;color:#666 !important;line-height:1.7}
+.empty {padding:60px 28px;text-align:center;border:1px dashed #999 !important;border-radius:0;background:#fafafa !important;color:#555 !important}
+.small {font-size:11px;color:#666 !important}
+.chat-q {padding:11px 13px;border-left:3px solid #111;background:#f3f3f3 !important;font-size:12px;color:#222 !important;border-radius:0;margin:8px 0}
+[data-testid="stExpander"], [data-testid="stExpanderDetails"] {border:1px solid #c9c9c9 !important;border-radius:0 !important;background:#fff !important;color:#111 !important}
+[data-testid="stTabs"] button {color:#555 !important;border-radius:0 !important}
+[data-testid="stTabs"] button[aria-selected="true"] {color:#111 !important;border-bottom-color:#111 !important}
+[data-testid="stTextInput"] input,[data-testid="stTextArea"] textarea {border-radius:0 !important;border:1px solid #999 !important;background:#fff !important;color:#111 !important}
+[data-testid="stTextInput"] input:focus,[data-testid="stTextArea"] textarea:focus {border-color:#111 !important;box-shadow:0 0 0 1px #111 !important}
+[data-testid="stFileUploaderDropzone"] {border:1px dashed #888 !important;background:#fff !important;border-radius:0 !important}
+[data-testid="stFileUploaderDropzone"] * {color:#111 !important}
+[data-testid="stChatMessage"] {background:#fff !important;border-bottom:1px solid #ddd !important}
+[data-testid="stChatMessageContent"] {color:#111 !important}
+.stAlert {border-radius:0 !important;border:1px solid #999 !important;background:#f5f5f5 !important;color:#111 !important}
+h1,h2,h3,h4,h5,h6,p,span,label,div {scrollbar-color:#888 #fff}
+h2,h3,h4 {color:#111 !important}
 </style>
 """,
     unsafe_allow_html=True,
