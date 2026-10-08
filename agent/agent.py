@@ -69,7 +69,13 @@ def _llm_candidate(
         from openai import OpenAI
 
         client = OpenAI(api_key=api_key)
-        model = os.getenv("LLM_MODEL", "gpt-6-luna")
+        model = (os.getenv("LLM_MODEL") or os.getenv("OPENAI_MODEL") or "gpt-6-luna").strip()
+        if not model:
+            return None
+        try:
+            max_output_tokens = max(64, min(4000, int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "700"))))
+        except (TypeError, ValueError):
+            max_output_tokens = 700
 
         instructions = """You are an evidence-grounded legal assistant.
 
@@ -103,7 +109,7 @@ Return only the answer text; do not output JSON or analysis."""
             model=model,
             instructions=instructions,
             input=history + [{"role": "user", "content": prompt}],
-            max_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "700")),
+            max_output_tokens=max_output_tokens,
         )
         answer = (response.output_text or "").strip()
         return answer or None
@@ -176,9 +182,9 @@ def _confidence(
     if contradicted:
         return "LOW"
     ratio = supported / len(claims)
-    if ratio == 1 and (not citations or valid == len(citations)):
+    if ratio == 1 and len(citations) == len(claims) and valid == len(citations):
         return "HIGH"
-    if ratio >= 0.5:
+    if ratio >= 0.5 and len(citations) >= supported and valid == len(citations):
         return "MEDIUM"
     return "LOW"
 
@@ -224,12 +230,17 @@ def answer_with_grounding(
     all_supported = bool(claims) and all(
         claim.get("status") == "SUPPORTED" for claim in claims
     )
-    all_cited = bool(claims) and all(
-        claim.get("status") == "SUPPORTED"
-        and claim.get("document") is not None
-        and claim.get("page") is not None
-        and claim.get("chunk_id") is not None
-        for claim in claims
+    all_cited = (
+        bool(claims)
+        and len(citations) == len(claims)
+        and all(c.get("valid") for c in citations)
+        and all(
+            claim.get("status") == "SUPPORTED"
+            and claim.get("document") is not None
+            and claim.get("page") is not None
+            and claim.get("chunk_id") is not None
+            for claim in claims
+        )
     )
     if all_supported and all_cited and candidate.strip():
         answer = candidate.strip()

@@ -1,6 +1,6 @@
 """Advanced Streamlit frontend for the integrated Agentic Legal Assistant."""
 from __future__ import annotations
-import sys, tempfile, html
+import sys, tempfile, html, hashlib
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -65,7 +65,15 @@ def process(files):
             paths.append(str(p))
         pages=load_documents(paths)
         chunks=chunk_pages(pages)
-        r=HybridRetriever()
+        # Namespace the persistent vector collection by the exact uploaded
+        # document set. A changed file or changed filename gets a new namespace,
+        # preventing stale chunks from previous uploads from leaking into results.
+        manifest = b"".join(
+            f.name.encode("utf-8") + b"\\0" + f.getvalue() + b"\\0"
+            for f in files
+        )
+        namespace = hashlib.sha256(manifest).hexdigest()[:16]
+        r=HybridRetriever(namespace=namespace)
         r.index(chunks)
         configure(r)
         st.session_state.documents=[{"name":Path(p).name,"pages":sum(x["document"]==Path(p).name for x in pages)} for p in paths]
