@@ -36,10 +36,46 @@ def sources(items):
 
 def claims(items):
     st.subheader("Claim Verification")
-    if not items: st.info("No claim-level verification was returned."); return
+    if not items:
+        st.info("No claim-level verification was returned.")
+        return
     for x in items:
-        if isinstance(x,str): st.write(x)
-        else: st.write(f'**{x.get("status","UNKNOWN")}** — {x.get("claim_text") or x.get("claim") or x.get("text","")}')
+        if isinstance(x, str):
+            st.write(x)
+            continue
+        status = x.get("status", "UNKNOWN")
+        claim = x.get("claim_text") or x.get("claim") or x.get("text", "")
+        icon = {"SUPPORTED": "OK", "PARTIALLY_SUPPORTED": "PARTIAL", "CONTRADICTED": "CONTRADICTED", "UNSUPPORTED": "UNSUPPORTED", "UNCERTAIN": "UNCERTAIN"}.get(status, "UNKNOWN")
+        st.markdown(f"**[{icon}] {status}** — {claim}")
+
+def citations(items):
+    st.subheader("Verified Citations")
+    if not items:
+        st.info("No verified citations.")
+        return
+    for x in items:
+        if not isinstance(x, dict):
+            st.write(x)
+            continue
+        icon = "OK" if x.get("valid") else "CHECK"
+        doc = x.get("document", "Unknown")
+        page = x.get("page", "—")
+        chunk = x.get("chunk_id", "—")
+        claim = x.get("claim_text", "")
+        st.markdown(f"**[{icon}] {doc} — Page {page}**")
+        if claim:
+            st.caption(f"Supports: {claim}")
+        st.caption(f"Evidence chunk: {chunk}")
+
+def findings(items):
+    for x in items or []:
+        if isinstance(x, str):
+            st.write(x)
+        elif isinstance(x, dict):
+            label = x.get("status") or x.get("type") or x.get("message") or x.get("claim_text")
+            detail = x.get("message") or x.get("description")
+            if label:
+                st.write(f"**{label}**" + (f" — {detail}" if detail else ""))
 
 def main():
     init()
@@ -97,12 +133,16 @@ def main():
     if r.get("draft"):
         st.subheader("Grounded Working Draft"); st.code(r["draft"],language="text")
     if r.get("confidence") is not None: st.metric("Confidence",str(r["confidence"]).upper())
-    claims(r.get("claims") or r.get("claim_verification")); sources(r.get("evidence") or r.get("sources") or r.get("authorities"))
-    for title,key in [("Citations","citations"),("Contradictions","contradictions"),("Missing Information","missing_information"),("Warnings","warnings")]:
-        vals=r.get(key) or []; st.subheader(title)
+    claims(r.get("claims") or r.get("claim_verification"))
+    sources(r.get("evidence") or r.get("sources") or r.get("authorities"))
+    citations(r.get("citations"))
+    for title,key in [("Contradictions","contradictions"),("Missing Information","missing_information"),("Warnings","warnings")]:
+        vals=r.get(key) or []
+        st.subheader(title)
         if vals:
-            for v in vals: st.write(v if isinstance(v,str) else v)
-        else: st.info("None reported.")
+            findings(vals)
+        else:
+            st.info("None reported.")
     st.caption("Evidence-grounded prototype; not legal advice.")
 
 if __name__=="__main__": main()
