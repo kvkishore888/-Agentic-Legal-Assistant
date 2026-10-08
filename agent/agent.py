@@ -251,8 +251,16 @@ def answer_with_grounding(
             else ["supporting evidence for the requested factual claims"]
         ),
         "route": route_request(query)["route"],
+        # This indicates configuration, not a successful provider call. The UI
+        # should distinguish enabled configuration from an actual LLM response.
         "llm_enabled": os.getenv("LLM_PROVIDER", "none").lower() == "openai"
         and bool(os.getenv("OPENAI_API_KEY")),
+        "llm_used": bool(
+            os.getenv("LLM_PROVIDER", "none").lower() == "openai"
+            and os.getenv("OPENAI_API_KEY")
+            and candidate
+            and candidate != _UNVERIFIED
+        ),
     }
 
 
