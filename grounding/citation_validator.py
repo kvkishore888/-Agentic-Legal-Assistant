@@ -1,4 +1,4 @@
-"""Validate citation identity, source existence, and claim/evidence linkage."""
+"""Strict citation validation: identity, source existence, and verified claim linkage."""
 from __future__ import annotations
 from typing import Any
 
@@ -12,35 +12,42 @@ def _items(context: Any):
         return [x for x in context if isinstance(x, dict) and x.get("text")]
     return []
 
-def _norm(text):
-    return " ".join(str(text or "").lower().split())
-
 def validate_citations(citations: list[dict] | None, context: Any, claims: list[dict] | None = None) -> list[dict]:
     evidence = _items(context)
     by_chunk = {str(x.get("chunk_id")): x for x in evidence if x.get("chunk_id") is not None}
-    by_doc_page = {(str(x.get("document")), str(x.get("page"))): x for x in evidence if x.get("document") is not None and x.get("page") is not None}
-    claim_by_chunk = {str(c.get("chunk_id")): c for c in (claims or []) if c.get("chunk_id") is not None}
+    by_doc_page = {
+        (str(x.get("document")), str(x.get("page"))): x
+        for x in evidence
+        if x.get("document") is not None and x.get("page") is not None
+    }
+    claim_by_key = {}
+    for claim in claims or []:
+        if claim.get("chunk_id") is not None:
+            claim_by_key[("chunk", str(claim["chunk_id"]))] = claim
+        if claim.get("document") is not None and claim.get("page") is not None:
+            claim_by_key[("doc_page", str(claim["document"]), str(claim["page"]))] = claim
+
     out = []
     for citation in citations or []:
         c = dict(citation)
         chunk = str(c.get("chunk_id")) if c.get("chunk_id") is not None else None
         doc, page = c.get("document"), c.get("page")
         source = by_chunk.get(chunk) if chunk else by_doc_page.get((str(doc), str(page)))
+        linked = (
+            claim_by_key.get(("chunk", chunk)) if chunk
+            else claim_by_key.get(("doc_page", str(doc), str(page)))
+        )
         checks = {
             "source_exists": bool(source),
-            "document_exists": False,
-            "page_exists": False,
-            "chunk_exists": False,
-            "evidence_supports_claim": False,
-            "relevant": False,
+            "document_exists": bool(source) and (doc is None or str(source.get("document")) == str(doc)),
+            "page_exists": bool(source) and (page is None or str(source.get("page")) == str(page)),
+            "chunk_exists": bool(source) and (chunk is None or str(source.get("chunk_id")) == chunk),
+            # A citation is valid only when the verifier itself marked the linked
+            # claim SUPPORTED. We intentionally do not use substring matching:
+            # a citation cannot turn an unsupported claim into a valid one.
+            "claim_verified": bool(linked and linked.get("status") == "SUPPORTED"),
+            "relevant": bool(linked and linked.get("status") == "SUPPORTED"),
         }
-        if source:
-            checks["document_exists"] = doc is None or str(source.get("document")) == str(doc)
-            checks["page_exists"] = page is None or str(source.get("page")) == str(page)
-            checks["chunk_exists"] = chunk is None or str(source.get("chunk_id")) == chunk
-            linked = claim_by_chunk.get(chunk) if chunk else None
-            checks["evidence_supports_claim"] = bool(linked and linked.get("status") == "SUPPORTED") or _norm(c.get("claim_text")) in _norm(source.get("text", ""))
-            checks["relevant"] = checks["evidence_supports_claim"]
         c["valid"] = all(checks.values())
         c["checks"] = checks
         if source:
