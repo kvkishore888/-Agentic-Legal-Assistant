@@ -16,10 +16,12 @@ def retrieve(query: str, top_k: int = 5):
 def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str = "legal notice",
                  conversation_context: list[dict[str, str]] | None = None) -> dict[str, Any]:
     context = conversation_context or []
-    retrieval_query = query
-    if workflow == "Grounded RAG Chat" and context:
-        prior = " ".join(f"{m.get('role','user')}: {m.get('content','')}" for m in context[-6:])
-        retrieval_query = f"{prior} user: {query}"
+    # Retrieval must be driven by the CURRENT user question. Conversation
+    # history is passed separately to the conversational agent so follow-ups
+    # can be resolved without polluting evidence retrieval with old questions.
+    retrieval_query = query.strip()
+    if not retrieval_query:
+        raise ValueError("Please enter a question.")
     evidence = retrieve(retrieval_query, top_k)
     if workflow == "Case / Contract Review":
         raw = review_case(query, top_k=top_k)
