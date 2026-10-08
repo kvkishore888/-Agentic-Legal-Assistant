@@ -37,6 +37,8 @@ def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str =
         return {"answer": "Research is grounded in indexed sources. External authority is shown as verified only when its source metadata and evidence validate it.",
                 "route": "LEGAL_RESEARCH", "evidence": evidence, **raw}
     raw = answer_with_grounding(query, evidence, conversation_history=context)
+    # The selected UI workflow is authoritative; the natural-language router
+    # is useful for intent hints but must not relabel the active workflow.
     return {"route": "GROUNDED_RAG_CHAT", "evidence": evidence, **raw}
 
 def route(query: str):
