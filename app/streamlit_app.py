@@ -164,6 +164,15 @@ def render_result(r, workflow):
             st.warning("Deterministic fallback is active. Configure Gemini or OpenAI to enable LLM responses.")
 
     if r.get("answer"):
+        if r.get("guard_blocked"):
+            st.warning("⚠️ Inappropriate / off-topic question")
+            st.markdown(f'<div class="card" style="font-size:16px;line-height:1.7">{html.escape(str(r["answer"]))}</div>',unsafe_allow_html=True)
+            suggestions = r.get("suggestions") or []
+            if suggestions:
+                st.markdown("### Ask something related to this case")
+                for suggestion in suggestions:
+                    st.markdown(f"- {html.escape(str(suggestion))}")
+            return
         st.markdown("### Answer")
         st.markdown(f'<div class="card" style="font-size:16px;line-height:1.7">{html.escape(str(r["answer"]))}</div>',unsafe_allow_html=True)
 
