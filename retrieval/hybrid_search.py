@@ -43,7 +43,15 @@ class HybridRetriever:
         add(vector, self.vector_weight, "vector")
         add(keyword, self.keyword_weight, "keyword")
         ordered = sorted(merged.values(), key=lambda r: r["fusion_score"], reverse=True)
-        return self.reranker.rerank(query, ordered, top_k)
+
+        # Never expose evaluation/test instructions as legal evidence. They may
+        # be present in synthetic demo PDFs but are not source material.
+        legal_only = [
+            item for item in ordered
+            if str((item.get("metadata") or {}).get("content_type", "LEGAL_EVIDENCE"))
+            != "EVALUATION_INSTRUCTIONS"
+        ]
+        return self.reranker.rerank(query, legal_only, top_k)
 
 _default = None
 
