@@ -6,8 +6,8 @@ from agent.router import route_request
 from legal.case_review import review_case
 from legal.drafting import draft_document
 from legal.research import research
-from retrieval.hybrid_search import retrieve as shared_retrieve
-from agent.relevance_guard import guard_query, retrieval_scope
+from retrieval.hybrid_search import retrieve as shared_retrieve, retrieval_scope
+from agent.relevance_guard import guard_query
 
 DRAFT_TYPES = ("legal notice", "petition", "affidavit", "bail")
 
