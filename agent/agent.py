@@ -119,20 +119,20 @@ def _candidate(
     context: Any,
     generator: Callable[[str, Any], str] | None = None,
     conversation_history: list[dict[str, str]] | None = None,
-) -> str:
+) -> tuple[str, bool]:
     evidence = _evidence(context)
     if generator:
-        return str(generator(query, context) or "")
+        return str(generator(query, context) or ""), False
 
     llm_answer = _llm_candidate(query, evidence, conversation_history)
     if llm_answer:
-        return llm_answer
+        return llm_answer, True
 
     if isinstance(context, dict) and context.get("candidate_answer"):
-        return str(context["candidate_answer"])
+        return str(context["candidate_answer"]), False
     if isinstance(context, dict) and context.get("answer"):
-        return str(context["answer"])
-    return _extractive_fallback(query, evidence)
+        return str(context["answer"]), False
+    return _extractive_fallback(query, evidence), False
 
 def _extractive_fallback(query: str, evidence: list[dict[str, Any]]) -> str:
     """Return a small, grounded answer from the best matching evidence sentences."""
@@ -190,7 +190,7 @@ def answer_with_grounding(
     conversation_history: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     evidence = _evidence(context)
-    candidate = _candidate(
+    candidate, llm_used = _candidate(
         query, context, candidate_generator, conversation_history
     )
 
@@ -255,12 +255,7 @@ def answer_with_grounding(
         # should distinguish enabled configuration from an actual LLM response.
         "llm_enabled": os.getenv("LLM_PROVIDER", "none").lower() == "openai"
         and bool(os.getenv("OPENAI_API_KEY")),
-        "llm_used": bool(
-            os.getenv("LLM_PROVIDER", "none").lower() == "openai"
-            and os.getenv("OPENAI_API_KEY")
-            and candidate
-            and candidate != _UNVERIFIED
-        ),
+        "llm_used": llm_used,
     }
 
 
