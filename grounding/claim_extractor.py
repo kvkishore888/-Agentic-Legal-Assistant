@@ -10,7 +10,7 @@ def extract_claims(answer: str) -> list[dict[str, Any]]:
     for raw in _SENTENCE_RE.split(answer):
         text=_clean(raw)
         if not text or text.rstrip(".")=="Not verified from the provided sources": continue
-        parts=re.split(r"(?i)\s+(?:and|but)\s+(?=(?:the|a|an|he|she|they|it|accused|defendant|contract|court)\b)",text)
+        parts=re.split(r"(?i)\s+(?:and|but)\s+(?=(?:the|a|an|he|she|they|it|accused|defendant|contract|court|released|arrested|dismissed|granted|paid)\b)",text)
         for part in parts:
             claim=_clean(part)
             if len(claim.split())>=2:

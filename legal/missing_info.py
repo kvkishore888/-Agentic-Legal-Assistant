@@ -41,6 +41,8 @@ _SYNONYMS = {
 def _present(corpus: str, item: str) -> bool:
     label = item.lower()
     patterns = _SYNONYMS.get(label, (re.escape(label),))
+    if isinstance(patterns, str):
+        patterns = (patterns,)
     return any(re.search(p, corpus, re.I | re.S) for p in patterns)
 
 def detect_missing_information(hits: Iterable[Mapping], required: Iterable[str]) -> list[dict]:

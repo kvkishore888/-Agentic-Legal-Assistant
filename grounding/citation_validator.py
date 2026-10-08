@@ -20,12 +20,10 @@ def validate_citations(citations: list[dict] | None, context: Any, claims: list[
         for x in evidence
         if x.get("document") is not None and x.get("page") is not None
     }
-    claim_by_key = {}
-    for claim in claims or []:
-        if claim.get("chunk_id") is not None:
-            claim_by_key[("chunk", str(claim["chunk_id"]))] = claim
-        if claim.get("document") is not None and claim.get("page") is not None:
-            claim_by_key[("doc_page", str(claim["document"]), str(claim["page"]))] = claim
+    def claim_key(item):
+        return (str(item.get("document")), str(item.get("page")),
+                str(item.get("chunk_id")), str(item.get("claim_text", "")).strip())
+    claim_by_key = {claim_key(claim): claim for claim in claims or []}
 
     out = []
     for citation in citations or []:
@@ -33,10 +31,7 @@ def validate_citations(citations: list[dict] | None, context: Any, claims: list[
         chunk = str(c.get("chunk_id")) if c.get("chunk_id") is not None else None
         doc, page = c.get("document"), c.get("page")
         source = by_chunk.get(chunk) if chunk else by_doc_page.get((str(doc), str(page)))
-        linked = (
-            claim_by_key.get(("chunk", chunk)) if chunk
-            else claim_by_key.get(("doc_page", str(doc), str(page)))
-        )
+        linked = claim_by_key.get(claim_key(c))
         checks = {
             "source_exists": bool(source),
             "document_exists": bool(source) and (doc is None or str(source.get("document")) == str(doc)),
