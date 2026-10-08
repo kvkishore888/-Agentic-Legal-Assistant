@@ -34,7 +34,7 @@ def run_workflow(workflow: str, query: str, top_k: int = 5, document_type: str =
         raw = research(query, top_k=top_k)
         return {"answer": "Research is grounded in indexed sources. External authority is shown as verified only when its source metadata and evidence validate it.",
                 "route": "LEGAL_RESEARCH", "evidence": evidence, **raw}
-    raw = answer_with_grounding(query, evidence)
+    raw = answer_with_grounding(query, evidence, conversation_history=context)
     return {"route": "GROUNDED_RAG_CHAT", "evidence": evidence, **raw}
 
 def route(query: str):
