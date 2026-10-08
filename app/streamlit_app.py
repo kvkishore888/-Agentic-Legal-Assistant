@@ -230,6 +230,21 @@ def findings(items):
 
 
 def render_result(r, workflow):
+    # Blocked/off-topic requests get a clean redirect UI. No retrieval,
+    # confidence, claim or citation metrics are shown because analysis stopped.
+    if r.get("guard_blocked"):
+        st.divider()
+        st.warning("⚠️ This question is outside the scope of the uploaded legal case.")
+        st.markdown(f'<div class="panel" style="font-size:15px;line-height:1.7">{html.escape(str(r.get("answer", "")))}</div>', unsafe_allow_html=True)
+        suggestions = r.get("suggestions") or []
+        if suggestions:
+            st.markdown("### Suggested case questions")
+            cols = st.columns(min(3, len(suggestions)))
+            for i, suggestion in enumerate(suggestions):
+                with cols[i % len(cols)]:
+                    st.info(str(suggestion))
+        return
+
     st.divider()
     confidence = r.get("confidence")
     evidence = r.get("evidence") or r.get("sources") or []
